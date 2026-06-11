@@ -2,7 +2,13 @@
 
 **Causal Impact Calculator** — Did this policy actually work?
 
-CausalLens estimates the causal effect of policy interventions on time series. Given an intervention date, it builds a counterfactual (what *would have happened* without the intervention), then compares it to observed data. Results include effect size, p-values, 95% confidence intervals, and downloadable reports (PDF + interactive HTML).
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
+[![Tests](https://img.shields.io/badge/tests-212%20passing-brightgreen)](https://github.com/AshayK003/CausalLens)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![GitHub Stars](https://img.shields.io/github/stars/AshayK003/CausalLens?logo=github)](https://github.com/AshayK003/CausalLens)
+
+CausalLens estimates the causal effect of policy interventions on time series.
 
 Supports 5 analysis methods: ARIMA ITS, SARIMAX (seasonal), Bayesian STS, Difference-in-Differences, and Synthetic Control.
 
