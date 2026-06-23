@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import html as _html
 import io
 
 import matplotlib
@@ -26,6 +27,7 @@ def generate_pdf_report(
     metric_name: str,
     method: str,
 ) -> bytes:
+    safe_metric = _html.escape(str(metric_name))
     fig, axes = plt.subplots(2, 1, figsize=(10, 7), gridspec_kw={"height_ratios": [3, 1]})
 
     ax = axes[0]
@@ -75,7 +77,7 @@ def generate_pdf_report(
     story.append(Paragraph("CausalLens — Causal Impact Report", styles["Title"]))
     story.append(Spacer(1, 12))
 
-    story.append(Paragraph(f"<b>Metric:</b> {metric_name}", styles["Normal"]))
+    story.append(Paragraph(f"<b>Metric:</b> {safe_metric}", styles["Normal"]))
     story.append(Paragraph(f"<b>Method:</b> {method.upper()}", styles["Normal"]))
     story.append(Paragraph(f"<b>Intervention:</b> Date index {intervention_idx} ({dates[intervention_idx]})", styles["Normal"]))
     story.append(Spacer(1, 12))
@@ -104,19 +106,19 @@ def generate_pdf_report(
     if significant:
         if direction == "increase":
             story.append(Paragraph(
-                f"The intervention caused a {format_effect_pct(abs(effect_pct))} increase in {metric_name}. "
+                f"The intervention caused a {format_effect_pct(abs(effect_pct))} increase in {safe_metric}. "
                 f"This effect is statistically significant (p={format_p_value(p_value)}).",
                 styles["Normal"],
             ))
         else:
             story.append(Paragraph(
-                f"The intervention caused a {format_effect_pct(abs(effect_pct))} decrease in {metric_name}. "
+                f"The intervention caused a {format_effect_pct(abs(effect_pct))} decrease in {safe_metric}. "
                 f"This effect is statistically significant (p={format_p_value(p_value)}).",
                 styles["Normal"],
             ))
     else:
         story.append(Paragraph(
-            f"The intervention did not produce a statistically significant effect on {metric_name} "
+            f"The intervention did not produce a statistically significant effect on {safe_metric} "
             f"(p={format_p_value(p_value)}). The observed change may be due to random variation.",
             styles["Normal"],
         ))

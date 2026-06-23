@@ -4,8 +4,6 @@ from src.utils.formatters import (
     format_effect,
     format_effect_pct,
     format_p_value,
-    format_sample_size,
-    format_stat_summary,
 )
 
 
@@ -69,30 +67,3 @@ class TestFormatCi:
 
     def test_same_values(self):
         assert format_ci(5.0, 5.0) == "[5.00, 5.00]"
-
-
-class TestFormatSampleSize:
-    def test_basic(self):
-        assert format_sample_size(80, 20) == "80 / 20"
-
-    def test_equal(self):
-        assert format_sample_size(50, 50) == "50 / 50"
-
-    def test_small(self):
-        assert format_sample_size(1, 1) == "1 / 1"
-
-
-class TestFormatStatSummary:
-    def test_basic(self):
-        result = format_stat_summary(1.5, 10.0, 0.5, 2.5, 0.03)
-        assert "Effect:" in result
-        assert "+1.50" in result
-        assert "+10.0%" in result
-        assert "[0.50, 2.50]" in result
-        assert "0.0300" in result
-
-    def test_negative_effect(self):
-        result = format_stat_summary(-2.0, -15.0, -3.0, -1.0, 0.01)
-        assert "-2.00" in result
-        assert "-15.0%" in result
-        assert "[-3.00, -1.00]" in result

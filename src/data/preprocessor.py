@@ -23,11 +23,18 @@ def detect_date_column(df: pd.DataFrame) -> str | None:
     for col in df.columns:
         if pd.api.types.is_datetime64_any_dtype(df[col]):
             return col
+    col_names_lower = {c.lower() for c in df.columns}
+    has_year = bool(col_names_lower & {"year", "yr", "fiscal_year"})
+    has_month = bool(col_names_lower & {"month", "mo", "mon"})
     for col in df.columns:
         try:
             series = df[col].astype(str) if not pd.api.types.is_string_dtype(df[col]) else df[col]
             parsed = pd.to_datetime(series, errors="coerce")
             if parsed.notna().sum() > len(df) * 0.5:
+                # If both year and month columns exist, skip "year" — let
+                # try_construct_date_from_year_month handle it instead.
+                if has_year and has_month and col.lower() in {"year", "yr", "fiscal_year"}:
+                    continue
                 return col
         except Exception:
             continue

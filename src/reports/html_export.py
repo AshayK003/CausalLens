@@ -1,81 +1,13 @@
 from __future__ import annotations
 
+import html as _html
 from datetime import datetime
 
 import plotly.graph_objects as go
 import plotly.io as pio
 
 from ..utils.formatters import format_ci, format_effect, format_effect_pct, format_p_value
-
-
-def _build_counterfactual_chart(
-    dates: list[str],
-    observed: list[float],
-    counterfactual: list[float],
-    intervention_idx: int,
-    ci_lower: list[float] | None = None,
-    ci_upper: list[float] | None = None,
-) -> go.Figure:
-    fig = go.Figure()
-
-    fig.add_trace(go.Scatter(
-        x=dates, y=observed,
-        mode="lines", name="Observed",
-        line=dict(color="#e2e8f0", width=2),
-    ))
-
-    fig.add_trace(go.Scatter(
-        x=dates[:intervention_idx], y=counterfactual[:intervention_idx],
-        mode="lines", name="Fitted (pre-intervention)",
-        line=dict(color="#818cf8", width=1, dash="dash"),
-    ))
-
-    fig.add_trace(go.Scatter(
-        x=dates[intervention_idx:], y=counterfactual[intervention_idx:],
-        mode="lines", name="Counterfactual",
-        line=dict(color="#f87171", width=2, dash="dash"),
-    ))
-
-    if ci_lower is not None and ci_upper is not None:
-        post_dates = dates[intervention_idx:]
-        post_lower = ci_lower[intervention_idx:]
-        post_upper = ci_upper[intervention_idx:]
-        fig.add_trace(go.Scatter(
-            x=post_dates + post_dates[::-1],
-            y=post_upper + post_lower[::-1],
-            fill="toself",
-            fillcolor="rgba(248,113,113,0.12)",
-            line=dict(color="rgba(0,0,0,0)"),
-            name="95% CI",
-            showlegend=True,
-            hoverinfo="skip",
-        ))
-
-    intervention_date = dates[intervention_idx]
-    fig.add_shape(
-        type="line",
-        x0=intervention_date, x1=intervention_date,
-        y0=0, y1=1, yref="paper",
-        line=dict(color="#fbbf24", width=2, dash="dot"),
-    )
-    fig.add_annotation(
-        x=intervention_date, y=1, yref="paper",
-        text="Intervention", showarrow=False,
-        font=dict(size=11, color="#fbbf24"),
-        yshift=10,
-    )
-
-    fig.update_layout(
-        xaxis_title="Date",
-        yaxis_title="Value",
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-        height=450,
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        xaxis=dict(gridcolor="rgba(148,163,184,0.1)", tickfont=dict(color="#94a3b8")),
-        yaxis=dict(gridcolor="rgba(148,163,184,0.1)", tickfont=dict(color="#94a3b8")),
-    )
-    return fig
+from .plots import build_counterfactual_plot
 
 
 def _build_effect_chart(
@@ -220,10 +152,12 @@ def generate_html_report(
     if n_post is None:
         n_post = len(dates) - intervention_idx
 
+    safe_metric = _html.escape(str(metric_name))
+
     ci_lower_list = [ci_lower] * len(dates)
     ci_upper_list = [ci_upper] * len(dates)
 
-    cf_fig = _build_counterfactual_chart(dates, observed, counterfactual, intervention_idx, ci_lower_list, ci_upper_list)
+    cf_fig = build_counterfactual_plot(dates, observed, counterfactual, intervention_idx, ci_lower_list, ci_upper_list)
     eff_fig = _build_effect_chart(dates, observed, counterfactual)
 
     cf_html = pio.to_html(cf_fig, include_plotlyjs="cdn", full_html=False)
@@ -233,14 +167,14 @@ def generate_html_report(
     if significant:
         interpretation = (
             f"The intervention caused a <strong>{format_effect_pct(abs(effect_pct))} {verb}</strong> "
-            f"in {metric_name}. This effect is <strong>statistically significant</strong> "
+            f"in {safe_metric}. This effect is <strong>statistically significant</strong> "
             f"(p={format_p_value(p_value)}, 95% CI {format_ci(ci_lower, ci_upper)})."
         )
         sig_class = "sig"
         sig_text = "Statistically Significant"
     else:
         interpretation = (
-            f"The intervention did not produce a statistically significant effect on {metric_name} "
+            f"The intervention did not produce a statistically significant effect on {safe_metric} "
             f"(p={format_p_value(p_value)}). The observed change ({direction}) may be due to random variation."
         )
         sig_class = "not-sig"
@@ -248,7 +182,7 @@ def generate_html_report(
 
     return HTML_TEMPLATE.format(
         report_date=datetime.now().strftime("%Y-%m-%d %H:%M"),
-        metric_name=metric_name,
+        metric_name=safe_metric,
         method=method.upper(),
         intervention_date=dates[intervention_idx],
         intervention_idx=intervention_idx,

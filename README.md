@@ -4,7 +4,7 @@
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
-[![Tests](https://img.shields.io/badge/tests-212%20passing-brightgreen)](https://github.com/AshayK003/CausalLens)
+[![Tests](https://img.shields.io/badge/tests-207%20passing-brightgreen)](https://github.com/AshayK003/CausalLens)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![GitHub Stars](https://img.shields.io/github/stars/AshayK003/CausalLens?logo=github)](https://github.com/AshayK003/CausalLens)
 
@@ -40,7 +40,7 @@ src/
     ├── constants.py          # SIGNIFICANCE_LEVEL=0.05, MIN_DATA_POINTS, etc.
     ├── formatters.py         # Number/CI/p-value formatting helpers
     └── validators.py         # DataFrame validation, intervention date checks
-tests/                        # 212+ tests across 17 files
+tests/                        # 207 tests across 15 files
 docs/
 ├── CONTRIBUTING.md           # Full developer guide
 ├── METHODOLOGY.md            # Statistical methods (plain English)

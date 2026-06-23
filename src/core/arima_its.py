@@ -26,7 +26,6 @@ class ITSResult:
     p_value: float
     counterfactual: np.ndarray
     fitted_values: np.ndarray
-    residuals: np.ndarray
     observed: np.ndarray
     intervention_idx: int
     arima_order: tuple[int, int, int] | tuple[int, int, int, int]
@@ -235,8 +234,6 @@ def run_arima_its(
     fitted_all[: len(fitted_values_arr)] = fitted_values_arr
     fitted_all[intervention_idx:] = post_predicted
 
-    residuals = y - fitted_all
-
     ljung_box_pvalue, residuals_ok = _check_residuals(fitted.resid)
 
     return ITSResult(
@@ -247,7 +244,6 @@ def run_arima_its(
         p_value=p_value,
         counterfactual=counterfactual_full,
         fitted_values=fitted_all,
-        residuals=residuals,
         observed=y,
         intervention_idx=intervention_idx,
         arima_order=selected_order,

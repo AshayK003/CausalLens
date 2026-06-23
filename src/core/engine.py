@@ -20,6 +20,39 @@ __all__ = ["causal_effect", "Method", "CausalResult"]
 logger = logging.getLogger(__name__)
 
 
+def _make_result(
+    method: str,
+    src,
+    dates: list[str],
+    n_pre: int,
+    n_post: int,
+    _counterfactual: str = "counterfactual",
+    _fitted: str | None = "fitted_values",
+    _observed: str = "observed",
+    **extra,
+) -> CausalResult:
+    """Build a CausalResult from any method-specific result object."""
+    cf = getattr(src, _counterfactual)
+    return CausalResult(
+        method=method,
+        effect=src.effect,
+        effect_pct=src.effect_pct,
+        ci_lower=src.ci_lower,
+        ci_upper=src.ci_upper,
+        p_value=src.p_value,
+        significant=src.p_value < SIGNIFICANCE_LEVEL if not hasattr(src, "significant") else src.significant,
+        direction="increase" if src.effect > 0 else "decrease" if not hasattr(src, "direction") else src.direction,
+        counterfactual=cf,
+        fitted_values=getattr(src, _fitted) if _fitted else cf,
+        observed=getattr(src, _observed),
+        intervention_idx=src.intervention_idx,
+        dates=dates,
+        n_pre=n_pre,
+        n_post=n_post,
+        **extra,
+    )
+
+
 class Method(str, Enum):
     ARIMA = "arima"
     BSTS = "bsts"
@@ -110,19 +143,8 @@ def causal_effect(
 
     if method == Method.ARIMA:
         arima_result = run_arima_its(y, intervention_idx)
-        result = CausalResult(
-            method="arima",
-            effect=arima_result.effect,
-            effect_pct=arima_result.effect_pct,
-            ci_lower=arima_result.ci_lower,
-            ci_upper=arima_result.ci_upper,
-            p_value=arima_result.p_value,
-            significant=arima_result.p_value < SIGNIFICANCE_LEVEL,
-            direction="increase" if arima_result.effect > 0 else "decrease",
-            counterfactual=arima_result.counterfactual,
-            fitted_values=arima_result.fitted_values,
-            observed=arima_result.observed,
-            intervention_idx=arima_result.intervention_idx,
+        result = _make_result(
+            "arima", arima_result,
             dates=[str(d)[:10] for d in dates],
             n_pre=intervention_idx,
             n_post=len(y) - intervention_idx,
@@ -137,38 +159,16 @@ def causal_effect(
             bsts_result = run_bsts(y, intervention_idx)
         except RuntimeError as e:
             raise ValueError(f"BSTS analysis failed: {e}")
-        result = CausalResult(
-            method="bsts",
-            effect=bsts_result.effect,
-            effect_pct=bsts_result.effect_pct,
-            ci_lower=bsts_result.ci_lower,
-            ci_upper=bsts_result.ci_upper,
-            p_value=bsts_result.p_value,
-            significant=bsts_result.p_value < SIGNIFICANCE_LEVEL,
-            direction="increase" if bsts_result.effect > 0 else "decrease",
-            counterfactual=bsts_result.counterfactual,
-            fitted_values=bsts_result.fitted_values,
-            observed=bsts_result.observed,
-            intervention_idx=bsts_result.intervention_idx,
+        result = _make_result(
+            "bsts", bsts_result,
             dates=[str(d)[:10] for d in dates],
             n_pre=intervention_idx,
             n_post=len(y) - intervention_idx,
         )
     elif method == Method.SARIMAX:
         sarimax_result = run_arima_its(y, intervention_idx, seasonal=True)
-        result = CausalResult(
-            method="sarimax",
-            effect=sarimax_result.effect,
-            effect_pct=sarimax_result.effect_pct,
-            ci_lower=sarimax_result.ci_lower,
-            ci_upper=sarimax_result.ci_upper,
-            p_value=sarimax_result.p_value,
-            significant=sarimax_result.p_value < SIGNIFICANCE_LEVEL,
-            direction="increase" if sarimax_result.effect > 0 else "decrease",
-            counterfactual=sarimax_result.counterfactual,
-            fitted_values=sarimax_result.fitted_values,
-            observed=sarimax_result.observed,
-            intervention_idx=sarimax_result.intervention_idx,
+        result = _make_result(
+            "sarimax", sarimax_result,
             dates=[str(d)[:10] for d in dates],
             n_pre=intervention_idx,
             n_post=len(y) - intervention_idx,
@@ -192,22 +192,12 @@ def causal_effect(
             treatment_unit=treatment_unit,
             intervention_date=intervention_date,
         )
-        result = CausalResult(
-            method="did",
-            effect=did_result.effect,
-            effect_pct=did_result.effect_pct,
-            ci_lower=did_result.ci_lower,
-            ci_upper=did_result.ci_upper,
-            p_value=did_result.p_value,
-            significant=did_result.significant,
-            direction=did_result.direction,
-            counterfactual=did_result.counterfactual,
-            fitted_values=did_result.counterfactual,
-            observed=did_result.observed,
-            intervention_idx=did_result.intervention_idx,
+        result = _make_result(
+            "did", did_result,
             dates=did_result.dates,
             n_pre=did_result.n_treated,
             n_post=did_result.n_control,
+            _fitted=None,
         )
     elif method == Method.SYNTHETIC_CONTROL:
         if group_col is None or treatment_unit is None:
@@ -223,22 +213,14 @@ def causal_effect(
             treated_unit=treatment_unit,
             intervention_date=intervention_date,
         )
-        result = CausalResult(
-            method="synthetic_control",
-            effect=sc_result.effect,
-            effect_pct=sc_result.effect_pct,
-            ci_lower=sc_result.ci_lower,
-            ci_upper=sc_result.ci_upper,
-            p_value=sc_result.p_value,
-            significant=sc_result.significant,
-            direction=sc_result.direction,
-            counterfactual=sc_result.synth_outcome,
-            fitted_values=sc_result.synth_outcome,
-            observed=sc_result.treated_outcome,
-            intervention_idx=sc_result.intervention_idx,
+        result = _make_result(
+            "synthetic_control", sc_result,
             dates=sc_result.dates,
             n_pre=sc_result.intervention_idx,
             n_post=len(sc_result.dates) - sc_result.intervention_idx,
+            _counterfactual="synth_outcome",
+            _fitted="synth_outcome",
+            _observed="treated_outcome",
         )
     else:
         raise ValueError(f"Unknown method: {method}")
