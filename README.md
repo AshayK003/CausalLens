@@ -265,3 +265,15 @@ MIT
   url={https://github.com/AshayK003/CausalLens}
 }
 ```
+
+## Changelog
+
+### 2026-06-23 — Bug fixes & robustness
+
+- **Parallel trends test (DiD):** The `parallel_trends_p` field was previously hardcoded to `1.0` — it now computes an actual pre-intervention trend comparison using OLS. A warning is logged if the assumption may be violated (p < 0.05). Skipped gracefully when pre-intervention data is insufficient.
+- **`_make_result` fragileness:** Replaced nested ternary operators for `significant` and `direction` fields with explicit `hasattr` checks — eliminates silent override bugs when a result object has contradictory attributes.
+- **Effect percentage calculation:** Changed from `mean(per-point ratio)` to `mean(effect) / mean(|predicted|)` — avoids skew from near-zero predictions in the per-point ratio approach.
+- **BSTS CI extraction:** Added fallback chain across multiple column naming conventions (different `causalimpact` versions). Validates CI ordering (lower ≤ upper). Clamps p-values to [0, 1].
+- **Panel method validation:** Added `n_unique_time_points < 30` check for DiD and Synthetic Control — previously only single-series methods had a minimum length guard.
+- **Streamlit cache fix:** Removed hash/session-state indirection. `run_cached_analysis` now accepts the DataFrame directly with `@st.cache_data(hash_funcs=...)`, eliminating the risk of stale cache from mismatched hash and stored data.
+- **Test conftest fix:** Corrected `sys.path` to point to project root instead of `tests/` directory — tests can now import `src/` modules reliably.
