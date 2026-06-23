@@ -33,6 +33,19 @@ def _make_result(
 ) -> CausalResult:
     """Build a CausalResult from any method-specific result object."""
     cf = getattr(src, _counterfactual)
+
+    # Resolve significant — prefer src attribute, else compute from p-value
+    if hasattr(src, "significant"):
+        significant = src.significant
+    else:
+        significant = src.p_value < SIGNIFICANCE_LEVEL
+
+    # Resolve direction — prefer src attribute, else infer from effect sign
+    if hasattr(src, "direction"):
+        direction = src.direction
+    else:
+        direction = "increase" if src.effect > 0 else "decrease"
+
     return CausalResult(
         method=method,
         effect=src.effect,
@@ -40,8 +53,8 @@ def _make_result(
         ci_lower=src.ci_lower,
         ci_upper=src.ci_upper,
         p_value=src.p_value,
-        significant=src.p_value < SIGNIFICANCE_LEVEL if not hasattr(src, "significant") else src.significant,
-        direction="increase" if src.effect > 0 else "decrease" if not hasattr(src, "direction") else src.direction,
+        significant=significant,
+        direction=direction,
         counterfactual=cf,
         fitted_values=getattr(src, _fitted) if _fitted else cf,
         observed=getattr(src, _observed),
@@ -137,6 +150,14 @@ def causal_effect(
     if is_panel:
         dates_pd = pd.DatetimeIndex(dates).sort_values()
         intervention_idx = validate_intervention_date(dates_pd, intervention_date)
+        # Validate panel has enough time points per group
+        n_time_points = dates_pd.nunique()
+        if n_time_points < 30:
+            raise ValueError(
+                f"Panel data has only {n_time_points} unique time points, "
+                f"but at least 30 are needed. "
+                f"Upload data with longer time series."
+            )
     else:
         intervention_idx = validate_intervention_date(dates_pd, intervention_date)
         validate_series_length(y)
@@ -195,8 +216,8 @@ def causal_effect(
         result = _make_result(
             "did", did_result,
             dates=did_result.dates,
-            n_pre=did_result.n_treated,
-            n_post=did_result.n_control,
+            n_pre=did_result.intervention_idx,
+            n_post=len(did_result.dates) - did_result.intervention_idx,
             _fitted=None,
         )
     elif method == Method.SYNTHETIC_CONTROL:

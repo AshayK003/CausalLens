@@ -7,12 +7,12 @@ def format_effect(value: float) -> str:
 
 
 def format_effect_pct(value: float) -> str:
-    """Format effect percentage with sign (e.g. +12.3%).
+    """Format effect percentage (e.g. 12.3%, -4.5%).
 
-    Note: Callers should pass absolute values if they want unsigned display.
-    This function always adds a +/- sign.
+    Pass the signed value. For display with explicit direction, callers
+    should pass abs() and format the sign separately.
     """
-    return f"{value:+.1f}%"
+    return f"{value:.1f}%"
 
 
 def format_p_value(value: float, *, decimals: int = 4) -> str:

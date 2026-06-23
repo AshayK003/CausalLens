@@ -26,16 +26,16 @@ class TestFormatEffect:
 
 class TestFormatEffectPct:
     def test_positive(self):
-        assert format_effect_pct(12.3) == "+12.3%"
+        assert format_effect_pct(12.3) == "12.3%"
 
     def test_negative(self):
         assert format_effect_pct(-5.7) == "-5.7%"
 
     def test_zero(self):
-        assert format_effect_pct(0.0) == "+0.0%"
+        assert format_effect_pct(0.0) == "0.0%"
 
     def test_large_percentage(self):
-        assert format_effect_pct(100.0) == "+100.0%"
+        assert format_effect_pct(100.0) == "100.0%"
 
 
 class TestFormatPValue:

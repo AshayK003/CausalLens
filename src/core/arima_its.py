@@ -211,10 +211,12 @@ def run_arima_its(
     post_predicted = predicted_mean
 
     effect = float(np.mean(post_actual - post_predicted))
-    abs_predicted = np.abs(post_predicted)
-    mask = abs_predicted > 1e-6
-    if mask.any():
-        effect_pct = float(np.mean((post_actual[mask] - post_predicted[mask]) / abs_predicted[mask]) * 100)
+
+    # effect_pct = (mean_effect / mean_abs_predicted) * 100
+    # Avoids per-point ratio distortion when predictions are near zero.
+    mean_abs_predicted = float(np.mean(np.abs(post_predicted)))
+    if abs(mean_abs_predicted) > 1e-10:
+        effect_pct = float(effect / mean_abs_predicted * 100)
     else:
         pre_mean = float(np.mean(y[:intervention_idx])) if intervention_idx > 0 else 1.0
         effect_pct = float(effect / (abs(pre_mean) + 1e-10) * 100)

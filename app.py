@@ -147,9 +147,9 @@ st.markdown("""
 
 
 # ─── Cache ─────────────────────────────────────────────────────
-@st.cache_data
+@st.cache_data(hash_funcs={pd.DataFrame: pd.util.hash_pandas_object})
 def run_cached_analysis(
-    df_hash: int,
+    df: pd.DataFrame,
     date_col: str,
     metric_col: str,
     intervention_date: str,
@@ -157,11 +157,8 @@ def run_cached_analysis(
     group_col: str | None = None,
     treatment_unit: str | None = None,
 ) -> dict:
-    _df = st.session_state.get("_df_cache")
-    if _df is None:
-        return {}
     result = causal_effect(
-        df=_df,
+        df=df,
         date_col=date_col,
         metric_col=metric_col,
         intervention_date=intervention_date,
@@ -1103,10 +1100,8 @@ def main():
 
         with st.spinner("Running causal analysis..."):
             try:
-                df_hash = int(pd.util.hash_pandas_object(df).sum())
-                st.session_state["_df_cache"] = df
                 result_dict = run_cached_analysis(
-                    df_hash, date_col, metric_col, intervention_str, method,
+                    df, date_col, metric_col, intervention_str, method,
                     group_col, treatment_unit
                 )
                 if not result_dict:

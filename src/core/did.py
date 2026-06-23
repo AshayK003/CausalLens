@@ -65,7 +65,8 @@ def run_did(
     treated_df = df[df[group_col] == treatment_unit].copy()
     control_df = df[df[group_col] != treatment_unit].copy()
 
-    intervention_idx = int(df[df[time_col] >= pd.Timestamp(intervention_date)].index[0])
+    dates = sorted(df[time_col].unique())
+    intervention_idx = next(i for i, d in enumerate(dates) if d >= pd.Timestamp(intervention_date))
 
     treated_pre = treated_df[treated_df["post"] == 0][outcome_col]
     treated_post = treated_df[treated_df["post"] == 1][outcome_col]
@@ -76,6 +77,40 @@ def run_did(
     treated_post_mean = float(treated_post.mean())
     control_pre_mean = float(control_pre.mean())
     control_post_mean = float(control_post.mean())
+
+    # ── Parallel trends test (pre-intervention only) ──────────────
+    # Regress outcome on time trend + treated + time×treated.
+    # A significant interaction means the pre-trends differ — violation.
+    pre_df = df[df["post"] == 0].copy()
+    pre_df = pre_df.sort_values(time_col).reset_index(drop=True)
+    pre_df["time_trend"] = pre_df.groupby(group_col).cumcount()
+    pre_X = pre_df[["time_trend", "treated"]].copy()
+    pre_X["time_trend_x_treated"] = pre_X["time_trend"] * pre_X["treated"]
+    pre_X = sm.add_constant(pre_X)
+    pre_y = pre_df[outcome_col]
+
+    n_pre_periods = pre_df[group_col].value_counts().min()
+    if pre_X["time_trend"].nunique() < 2 or pre_X["treated"].nunique() < 2 or n_pre_periods < 4:
+        parallel_trends_p = float("nan")
+        logger.warning(
+            "Parallel trends test skipped: insufficient pre-intervention data "
+            "(need ≥2 time periods with both treatment and control groups, "
+            f"got {n_pre_periods} min periods per group)"
+        )
+    else:
+        try:
+            pre_model = sm.OLS(pre_y, pre_X).fit()
+            parallel_trends_p = float(pre_model.pvalues.get("time_trend_x_treated", 1.0))
+        except Exception as e:
+            parallel_trends_p = float("nan")
+            logger.warning(f"Parallel trends test failed: {e}")
+
+    if parallel_trends_p is not None and not (np.isnan(parallel_trends_p) or parallel_trends_p > 0.05):
+        logger.warning(
+            f"Parallel trends assumption may be violated "
+            f"(p={parallel_trends_p:.4f} < 0.05). "
+            f"DiD results may be unreliable."
+        )
 
     X = df[["treated", "post", "treated_x_post"]]
     X = sm.add_constant(X)
@@ -89,12 +124,9 @@ def run_did(
     ci_upper = float(ci[1])
     p_value = float(model.pvalues["treated_x_post"])
 
-    parallel_trends_p = 1.0
-
     mean_level = abs(treated_pre_mean) + 1e-10
     effect_pct = did_effect / mean_level * 100
 
-    dates = sorted(df[time_col].unique())
     date_strs = [str(d)[:10] for d in dates]
 
     observed_all = np.zeros(len(dates))

@@ -73,10 +73,11 @@ def run_bsts(
         raise RuntimeError(f"BSTS prediction extraction failed: {e}")
 
     effect = float(np.mean(post_actual - post_predicted))
-    abs_predicted = np.abs(post_predicted)
-    mask = abs_predicted > 1e-6
-    if mask.any():
-        effect_pct = float(np.mean((post_actual[mask] - post_predicted[mask]) / abs_predicted[mask]) * 100)
+
+    # effect_pct = (mean_effect / mean_abs_predicted) * 100
+    mean_abs_predicted = float(np.mean(np.abs(post_predicted)))
+    if abs(mean_abs_predicted) > 1e-10:
+        effect_pct = float(effect / mean_abs_predicted * 100)
     else:
         pre_mean = float(np.mean(y[:intervention_idx])) if intervention_idx > 0 else 1.0
         effect_pct = float(effect / (abs(pre_mean) + 1e-10) * 100)
@@ -88,14 +89,36 @@ def run_bsts(
     try:
         inferences = ci.inferences
         if inferences is not None and hasattr(inferences, "columns"):
-            if "posterior_tail_area" in inferences.columns:
-                p_value = float(inferences["posterior_tail_area"].iloc[0])
-            elif "abs_effect" in inferences.columns:
-                p_value = float(np.mean(np.abs(inferences["abs_effect"]) >= 0))
+            # Try multiple possible column naming conventions across causalimpact versions
+            col_map = {
+                "p_value": ["posterior_tail_area", "p_value", "p-val"],
+                "ci_lower": [
+                    "abs_effect_lower", "point_pred_lower",
+                    "pred_abs_effect_lower", "avg_abs_effect_lower",
+                ],
+                "ci_upper": [
+                    "abs_effect_upper", "point_pred_upper",
+                    "pred_abs_effect_upper", "avg_abs_effect_upper",
+                ],
+            }
 
-            if "abs_effect_lower" in inferences.columns and "abs_effect_upper" in inferences.columns:
-                ci_lower = float(inferences["abs_effect_lower"].mean())
-                ci_upper = float(inferences["abs_effect_upper"].mean())
+            for key, candidates in col_map.items():
+                found = [c for c in candidates if c in inferences.columns]
+                if found and key == "p_value":
+                    p_value = float(inferences[found[0]].iloc[0])
+                    # p-value should be in [0, 1]; clamp if outside
+                    if not (0 <= p_value <= 1):
+                        p_value = np.nan
+                elif found and key in ("ci_lower", "ci_upper"):
+                    val = float(inferences[found[0]].mean())
+                    if key == "ci_lower":
+                        ci_lower = val
+                    else:
+                        ci_upper = val
+
+            # Validate CI ordering: if lower > upper, swap
+            if not np.isnan(ci_lower) and not np.isnan(ci_upper) and ci_lower > ci_upper:
+                ci_lower, ci_upper = ci_upper, ci_lower
     except Exception as e:
         logger.warning(f"Could not extract BSTS inferences: {e}")
 
