@@ -42,7 +42,7 @@ opencode.jsonc
 .agents/
 
 # CI workflow (PAT lacks workflow scope)
-.github/workflows/
+# .github/workflows/
 
 # Streamlit
 .streamlit/secrets.toml
