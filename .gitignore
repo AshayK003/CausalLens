@@ -34,12 +34,8 @@ desktop.ini
 .env.local
 .env.*.local
 
-# opencode config (contains API keys)
-opencode.json
-opencode.jsonc
 
 # Agent skills (local, not repo)
-.agents/
 
 # CI workflow (PAT lacks workflow scope)
 # .github/workflows/
