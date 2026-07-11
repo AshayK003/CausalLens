@@ -133,7 +133,10 @@ python -m pytest tests/ -v -m "not slow"
 # Full suite (~4 min)
 python -m pytest tests/ -v
 
-# With coverage report
+# Quick coverage (terminal report)
+python -m pytest tests/ --cov=src -v
+
+# Full coverage report (HTML)
 python -m pytest tests/ --cov=src --cov-report=html
 ```
 

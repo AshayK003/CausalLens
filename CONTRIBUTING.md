@@ -74,9 +74,10 @@ improve error messages for invalid dates
 
 ## Pull Requests
 
-- Keep PRs focused — one change per PR
+- Keep PRs focused — one change per PR (target ≤200 lines changed)
 - Include a description of what changed and why
 - Reference related issues
+- Small PRs get reviewed and merged faster. Split large features into sequential PRs.
 
 ## Questions?
 
