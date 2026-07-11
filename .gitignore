@@ -60,3 +60,5 @@ coverage.xml
 # Project-specific
 *.log
 logs/
+
+internals/
