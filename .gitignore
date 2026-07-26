@@ -49,6 +49,9 @@ htmlcov/
 .coverage
 coverage.xml
 
+# Internal audit files (AEOS, engineering memory, bottlenecks, etc.)
+internals/
+
 # Distribution
 *.tar.gz
 *.whl
