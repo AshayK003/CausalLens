@@ -49,7 +49,7 @@ htmlcov/
 .coverage
 coverage.xml
 
-# Internal audit files (AEOS, engineering memory, bottlenecks, etc.)
+# Internal files
 internals/
 
 # Distribution
