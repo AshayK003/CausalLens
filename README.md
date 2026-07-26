@@ -280,3 +280,4 @@ MIT
 - **Panel method validation:** Added `n_unique_time_points < 30` check for DiD and Synthetic Control — previously only single-series methods had a minimum length guard.
 - **Streamlit cache fix:** Removed hash/session-state indirection. `run_cached_analysis` now accepts the DataFrame directly with `@st.cache_data(hash_funcs=...)`, eliminating the risk of stale cache from mismatched hash and stored data.
 - **Test conftest fix:** Corrected `sys.path` to point to project root instead of `tests/` directory — tests can now import `src/` modules reliably.
+# CI re-trigger
